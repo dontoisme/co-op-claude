@@ -77,15 +77,24 @@ class Station:
             asyncio.create_task(self._watch_remote_messages()),
         ]
 
-        # Graceful shutdown
+        # Graceful shutdown — cancel all tasks on Ctrl+C
+        def _shutdown():
+            self.is_running = False
+            for t in tasks:
+                t.cancel()
+
         loop = asyncio.get_event_loop()
         for sig in (signal.SIGINT, signal.SIGTERM):
             try:
-                loop.add_signal_handler(sig, lambda: setattr(self, 'is_running', False))
+                loop.add_signal_handler(sig, _shutdown)
             except NotImplementedError:
                 pass
 
         await asyncio.gather(*tasks, return_exceptions=True)
+
+        R = COLORS["reset"]
+        D = COLORS["dim"]
+        print(f"\n{D}Session ended.{R}")
         await self.claude.shutdown()
 
     # ─── Input Loop ───────────────────────────────────────────────

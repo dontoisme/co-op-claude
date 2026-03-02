@@ -59,12 +59,15 @@ class ClaudeBridge:
         ]
 
         try:
+            import os
+            env = {**os.environ, "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"}
             self._proc = await asyncio.create_subprocess_exec(
                 *cmd,
                 stdin=asyncio.subprocess.PIPE,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 cwd=self.project_path,
+                env=env,
             )
             self._started = True
 

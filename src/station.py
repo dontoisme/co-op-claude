@@ -59,9 +59,12 @@ class Station:
         print(f"\n{B}═══ Co-op Claude: {self.human_name}'s Station ═══{R}")
         print(f"Role: {self.role.value.title()} | Claude: {self.claude.claude_name}")
         print(f"Partner: {self.partner_name} | Project: {self.project_path}")
+        print(f"\n{D}Routing:{R}")
+        print(f"  {D}just type{R}                 → Broadcast to everyone")
+        print(f"  {D}@{self.claude.claude_name} <msg>{R}  → Ask your Claude")
+        print(f"  {D}@claude-* <msg>{R}           → Ask partner's Claude")
+        print(f"  {D}@{self.partner_name} <msg>{R}           → DM your partner")
         print(f"\n{D}Commands:{R}")
-        print(f"  {D}@{self.partner_name} <msg>{R}  → Chat with partner")
-        print(f"  {D}@claude-* <msg>{R}           → Message other Claude")
         print(f"  {D}/task <title>{R}             → Create shared task")
         print(f"  {D}/tasks{R}                    → View task board")
         print(f"  {D}/status{R}                   → Session info")
@@ -121,9 +124,17 @@ class Station:
             elif line.startswith("@"):
                 await self._handle_mention(line)
             else:
-                await self._send_to_own_claude(line)
+                # Default: broadcast to all (open group chat)
+                await self._broadcast(line)
+
+    async def _broadcast(self, text: str):
+        """Broadcast a message to all participants (default behavior)."""
+        await self.bus.publish(CoopMessage(
+            sender=self.human_name, recipient="all",
+            content=text, msg_type=MessageType.HUMAN_TO_HUMAN))
 
     async def _send_to_own_claude(self, prompt: str):
+        """Send a message directly to this station's Claude."""
         D = COLORS["dim"]
         W = COLORS["white"]
         R = COLORS["reset"]
@@ -134,7 +145,7 @@ class Station:
         if response:
             print(f"\n{W}{self.claude.claude_name}:{R} {response}\n")
 
-            # Broadcast truncated response so partner sees it
+            # Broadcast response so everyone sees it
             truncated = response[:500] + ("..." if len(response) > 500 else "")
             await self.bus.publish(CoopMessage(
                 sender=self.claude.claude_name,
@@ -221,14 +232,22 @@ class Station:
             print(f"Usage: @{target} <message>")
             return
 
-        if target.lower().startswith("claude"):
-            msg_type = MessageType.HUMAN_TO_OTHER_CLAUDE
+        # @claude-architect (own Claude) → send directly
+        if target.lower() == self.claude.claude_name.lower():
+            await self._send_to_own_claude(content)
+        elif target.lower().startswith("claude"):
+            # Other station's Claude → route through bus
+            await self.bus.publish(CoopMessage(
+                sender=self.human_name, recipient=target,
+                content=content, msg_type=MessageType.HUMAN_TO_OTHER_CLAUDE))
+            D = COLORS["dim"]
+            R = COLORS["reset"]
+            print(f"{D}Sent to {target} (waiting for response...){R}")
         else:
-            msg_type = MessageType.HUMAN_TO_HUMAN
-
-        await self.bus.publish(CoopMessage(
-            sender=self.human_name, recipient=target,
-            content=content, msg_type=msg_type))
+            # Human DM
+            await self.bus.publish(CoopMessage(
+                sender=self.human_name, recipient=target,
+                content=content, msg_type=MessageType.HUMAN_TO_HUMAN))
 
     # ─── Output Loop ──────────────────────────────────────────────
 

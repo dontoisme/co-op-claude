@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "coop-claude"
+version = "0.1.0"
+description = "Multiplayer Claude Code sessions — two devs, two AIs, one project"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [{name = "Don", email = "don@example.com"}]
+keywords = ["claude", "claude-code", "multiplayer", "pair-programming", "agent-teams"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Build Tools",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+[project.scripts]
+coop-claude = "src.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/yourname/coop-claude"
+Issues = "https://github.com/yourname/coop-claude/issues"
+
+[tool.setuptools.packages.find]
+include = ["src*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"

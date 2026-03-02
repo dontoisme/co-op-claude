@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# Interactive setup wizard for Co-op Claude
+set -euo pipefail
+
+echo "Co-op Claude Setup"
+echo "═══════════════════"
+echo ""
+
+# Check prerequisites
+echo "Checking prerequisites..."
+
+if command -v claude >/dev/null 2>&1; then
+    echo "  Claude Code CLI: OK"
+else
+    echo "  Claude Code CLI: MISSING"
+    echo "    Install: npm install -g @anthropic-ai/claude-code"
+fi
+
+if command -v python3 >/dev/null 2>&1; then
+    PY_VERSION=$(python3 --version 2>&1)
+    echo "  Python: $PY_VERSION"
+else
+    echo "  Python 3.10+: MISSING"
+fi
+
+if command -v tmux >/dev/null 2>&1; then
+    echo "  tmux: OK (optional)"
+else
+    echo "  tmux: not found (optional, recommended)"
+fi
+
+echo ""
+
+# Enable Agent Teams
+read -p "Enable Agent Teams? [Y/n] " ENABLE_AT
+ENABLE_AT="${ENABLE_AT:-Y}"
+if [[ "$ENABLE_AT" =~ ^[Yy] ]]; then
+    export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
+    echo "  Set CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1"
+
+    SETTINGS_FILE="$HOME/.claude/settings.json"
+    if [ -f "$SETTINGS_FILE" ]; then
+        python3 -c "
+import json
+p = '$SETTINGS_FILE'
+with open(p) as f:
+    d = json.load(f)
+d.setdefault('env', {})['CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS'] = '1'
+with open(p, 'w') as f:
+    json.dump(d, f, indent=2)
+print(f'  Updated {p}')
+"
+    else
+        mkdir -p "$(dirname "$SETTINGS_FILE")"
+        echo '{"env":{"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS":"1"}}' > "$SETTINGS_FILE"
+        echo "  Created $SETTINGS_FILE"
+    fi
+fi
+
+echo ""
+echo "Setup complete! Start a session with:"
+echo "  coop-claude start --name YourName --role architect --partner PartnerName"

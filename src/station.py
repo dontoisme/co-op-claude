@@ -86,6 +86,7 @@ class Station:
                 pass
 
         await asyncio.gather(*tasks, return_exceptions=True)
+        await self.claude.shutdown()
 
     # ─── Input Loop ───────────────────────────────────────────────
 
